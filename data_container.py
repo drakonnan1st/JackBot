@@ -1,4 +1,5 @@
 """All global variables and triggers are grouped here"""
+from sc2 import RACE
 from sc2.constants import (
     BARRACKS,
     COMMANDCENTER,
@@ -62,7 +63,8 @@ class DataContainer:
         self.initialize_enemies()
         self.close_enemy_production = self.check_for_proxy_buildings()
         self.floating_buildings_bm = self.check_for_floating_buildings()
-        self.one_base_play = self.check_for_second_bases()
+        if self.time == 100:
+            self.one_base_play = self.check_for_one_base_play()
 
     def check_for_proxy_buildings(self) -> bool:
         """Check if there are any proxy buildings"""
@@ -76,16 +78,17 @@ class DataContainer:
             and self.time > 300
         )
 
-    def check_for_second_bases(self) -> bool:
-        """Check if its a one base play"""
-        return bool(
-            self.overlords
-            and not self.enemy_structures.of_type({NEXUS, COMMANDCENTER, HATCHERY}).closer_than(
-                25, self.overlords.furthest_to(self.start_location)
-            )
-            and self.time > 165
-            and not self.close_enemy_production
-        )
+    async def check_for_one_base_play(self):
+        """Check for rushes specifying race, it still incomplete"""
+        if not self.close_enemy_production or self.enemy_structures.of_type(
+            {HATCHERY, NEXUS, COMMANDCENTER}
+        ).closer_than(8, self.ordered_expansions[-2]):
+            if self.enemy_race == RACE.Zerg:
+                return self.enemy_structures.of_type(SPAWNINGPOOL)
+            if self.enemy_race == RACE.Terran:
+                return len(self.enemy_structures.of_type(BARRACKS)) > 2
+            if self.enemy_race == RACE.Protoss:
+                return len(self.cached_enemies.structure.of_type(GATEWAY)) >= 2
 
     def prepare_enemy_data_points(self):
         """Prepare data related to enemy units"""
